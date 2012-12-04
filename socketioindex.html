@@ -1,0 +1,11 @@
+<html>
+<head>
+<script src="http://localhost:4444/socket.io/socket.io.js"></script>
+<script>
+	var socket = io.connect('http://localhost:4444');
+	socket.on('connection', function(){
+		alert('WOW we have a new visitor! Hi there!');
+	});
+</script>
+</head>
+</html>

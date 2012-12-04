@@ -1,7 +1,8 @@
 var cluster = require('cluster'),
 	http = require('http'),
 	numCPUs = require('os').cpus().length,
-	port = 5000;
+	sio = require('socket.io'),
+	RedisStore = sio.RedisStore;
 
 if(cluster.isMaster){
 	// Fork all workers
@@ -9,11 +10,17 @@ if(cluster.isMaster){
 		cluster.fork();
 	}
 }else{
-	// For each worker create http server
-	http.createServer(function(req, res) {
-		res.writeHead(200);
-		res.end("hello world\n");
-	}).listen(port);
+	var io = sio.listen(4444);
+
+	// Pass this information to the workers
+	io.set('store', new RedisStore);
+	io.set('workerId', cluster.worker.process.pid);
+
+	// Aaand.. listen
+	io.sockets.on('connection', function(socket){
+		console.log('from worker ' + io.get('workerId'));
+		socket.broadcast.emit('connection');
+	});
 }
 
 cluster.on('fork', function(worker) {
@@ -22,5 +29,5 @@ cluster.on('fork', function(worker) {
 
 cluster.on('exit', function(worker) {
 	console.log('worker ' + worker.process.pid + ' died');
-	cluster.fork(); // failover -> recovery
+	cluster.fork(); // failover
 });
