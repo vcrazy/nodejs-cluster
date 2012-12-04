@@ -1,20 +1,19 @@
-var cluster = require('cluster');
-var http = require('http');
-var numCPUs = require('os').cpus().length;
+var cluster = require('cluster'),
+	http = require('http'),
+	numCPUs = require('os').cpus().length,
+	port = 5000;
 
-if (cluster.isMaster) {
-  // Fork workers.
-  for (var i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-} else {
-  // Workers can share any TCP connection
-  // In this case its a HTTP server
-  http.createServer(function(req, res) {
-    res.writeHead(200);
-    res.end("hello world\n");
-  }).listen(5000);
-
+if(cluster.isMaster){
+	// Fork all workers
+	for(var i = 0; i < numCPUs; i++){
+		cluster.fork();
+	}
+}else{
+	// For each worker create http server
+	http.createServer(function(req, res) {
+		res.writeHead(200);
+		res.end("hello world\n");
+	}).listen(port);
 }
 
 cluster.on('fork', function(worker) {
@@ -23,5 +22,5 @@ cluster.on('fork', function(worker) {
 
 cluster.on('exit', function(worker) {
 	console.log('worker ' + worker.process.pid + ' died');
-	cluster.fork();
+	cluster.fork(); // failover -> recovery
 });
